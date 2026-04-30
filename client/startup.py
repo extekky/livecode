@@ -8,7 +8,6 @@ import urllib.request
 from typing import Optional
 
 from client import bridge
-from server import http_server, ws_server
 from server.config import BRIDGE_PORT, BRIDGE_HOST
 
 
@@ -40,6 +39,8 @@ def _run_bridge(
 
 
 def _run_http(stop: threading.Event, share_url: str, local_url: str) -> None:
+    from server import http_server
+
     httpd = http_server.create(share_url, local_url)
     if httpd is None:
         return
@@ -50,6 +51,8 @@ def _run_http(stop: threading.Event, share_url: str, local_url: str) -> None:
 
 
 def _run_ws(stop: threading.Event, file_path: pathlib.Path) -> None:
+    from server import ws_server
+
     asyncio.run(ws_server.run(file_path, stop_event=stop))
 
 

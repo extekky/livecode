@@ -1,14 +1,9 @@
-for i in range(10):
-    for j in range(10):
-        print(i)
+# Перевод числа в СС с основанием base
+def perevod(n, base):
+    r = ''
+    while n  > 0:
+        r = str(n % base) + r 
+        n = n // base 
+    return r 
 
-
-
-
-
-
-
-
-
-
-    
+print(perevod(10, 2))

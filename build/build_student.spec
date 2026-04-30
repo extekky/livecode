@@ -2,16 +2,9 @@ from pathlib import Path
 
 
 ROOT = Path.cwd()
-FRONTEND_DIST_DIR = ROOT / "frontend" / "dist"
 
-if not FRONTEND_DIST_DIR.exists():
-    raise SystemExit("frontend/dist is missing. Run `npm run build` in frontend/.")
-
-datas = [(str(FRONTEND_DIST_DIR), "frontend/dist")]
-
-hiddenimports = [
-    "websockets.asyncio.server",
-]
+datas = []
+hiddenimports = []
 
 
 a = Analysis(
@@ -35,7 +28,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="liveshare-student",
+    name="StasikShare Student",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
