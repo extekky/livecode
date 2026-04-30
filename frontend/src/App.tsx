@@ -1,4 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Check,
+  Code2,
+  Copy,
+  Link2,
+  Moon,
+  Radio,
+  Sun,
+  Users,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import Editor from "./components/Editor";
 import type { ConnectionState, SessionPayload, SyncMessage } from "./types";
 
@@ -259,44 +271,72 @@ export default function App() {
     return cls.join(" ");
   }, [lineCount, lineFlash, maxLines, warnLines]);
 
+  const linkCopied = copyLinkLabel === "Copied!";
+  const codeCopied = copyCodeLabel === "Copied!";
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <main className="app-shell">
       <section className="topbar">
         <div className="title-block">
-          <p className="eyebrow">LiveCode</p>
-          <h1>liveshare.py</h1>
+          <div className="brand-mark" aria-hidden="true">
+            <Code2 size={20} strokeWidth={2.3} />
+          </div>
+          <div>
+            <h1>StasikShare</h1>
+          </div>
         </div>
 
         <div className="quick-actions">
-          <button className="action-button secondary" type="button" onClick={() => void copyLink()}>
-            {copyLinkLabel}
+          <button
+            className={`action-button secondary ${linkCopied ? "success" : ""}`}
+            type="button"
+            onClick={() => void copyLink()}
+          >
+            {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
+            <span>{copyLinkLabel}</span>
           </button>
-          <button className="action-button" type="button" onClick={() => void copyCode()}>
-            {copyCodeLabel}
+          <button
+            className={`action-button ${codeCopied ? "success" : ""}`}
+            type="button"
+            onClick={() => void copyCode()}
+          >
+            {codeCopied ? <Check size={16} /> : <Copy size={16} />}
+            <span>{copyCodeLabel}</span>
           </button>
           <button
             className="theme-toggle"
             type="button"
             title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             onClick={() => setDark((d) => !d)}
           >
-            {dark ? "☀️" : "🌙"}
+            {dark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <span className={`conn-dot ${connected ? "online" : "offline"}`} title={saveState} />
+          <span
+            className={`connection-pill ${connected ? "online" : "offline"}`}
+            title={saveState}
+          >
+            {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
+            <span>{connected ? "Live" : "Offline"}</span>
+          </span>
         </div>
       </section>
 
       <section className="workspace">
         <div className="editor-meta">
-          <span className="save-state">{saveState}</span>
+          <span className="save-state">
+            <Radio size={14} />
+            {saveState}
+          </span>
           <div className="meta-right">
             {typingName && (
               <span className="typing-indicator">{typingName} is typing…</span>
             )}
             <span className="participants" title="Participants">
-              👥 {participants}
+              <Users size={14} />
+              {participants}
             </span>
             <span className={lineCountClass}>
               {lineCount} / {maxLines}

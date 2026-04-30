@@ -51,7 +51,11 @@ def _run_ws(stop: threading.Event, file_path: pathlib.Path) -> None:
 
 # ── Launchers ────────────────────────────────────────────────────────────────
 
-def start_teacher(share_url: str, local_url: str, file_path: pathlib.Path) -> list[threading.Thread]:
+def start_teacher(
+    share_url: str,
+    local_url: str,
+    file_path: pathlib.Path,
+) -> tuple[list[threading.Thread], threading.Event]:
     stop = threading.Event()
     bridge_ready = threading.Event()
 
