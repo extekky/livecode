@@ -26,9 +26,13 @@ def wait_for_url(url: str, timeout: float = 8.0) -> bool:
 
 # ── Thread wrappers ──────────────────────────────────────────────────────────
 
-def _run_bridge(stop: threading.Event, ready: Optional[threading.Event]) -> None:
+def _run_bridge(
+    stop: threading.Event,
+    ready: Optional[threading.Event],
+    file_path: pathlib.Path | None = None,
+) -> None:
     try:
-        server = bridge.create()
+        server = bridge.create(file_path)
     except OSError as exc:
         print(f"Cannot start file bridge: {exc}")
         return
@@ -60,7 +64,11 @@ def start_teacher(
     bridge_ready = threading.Event()
 
     workers = [
-        threading.Thread(target=_run_bridge, args=(stop, bridge_ready), daemon=True),
+        threading.Thread(
+            target=_run_bridge,
+            args=(stop, bridge_ready, file_path),
+            daemon=True,
+        ),
         threading.Thread(target=_run_http, args=(stop, share_url, local_url), daemon=True),
         threading.Thread(target=_run_ws, args=(stop, file_path), daemon=True),
     ]

@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 
 from server.config import BRIDGE_HOST, BRIDGE_PORT
+from server import file_store
 
 FILE_PATH = pathlib.Path("liveshare.py")
 
@@ -31,13 +32,10 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _read_file(self) -> str:
-        if not FILE_PATH.exists():
-            FILE_PATH.write_text("", encoding="utf-8")
-            return ""
-        return FILE_PATH.read_text(encoding="utf-8")
+        return file_store.read_text(FILE_PATH)
 
     def _write_file(self, content: str) -> None:
-        FILE_PATH.write_text(content, encoding="utf-8")
+        file_store.write_text(FILE_PATH, content)
 
     # ── Routes ──────────────────────────────────────────────────────────────
 
@@ -89,7 +87,10 @@ class _Handler(BaseHTTPRequestHandler):
 
 # ── Public API ───────────────────────────────────────────────────────────────
 
-def create() -> ThreadingHTTPServer:
+def create(file_path: Optional[pathlib.Path] = None) -> ThreadingHTTPServer:
+    global FILE_PATH
+    if file_path is not None:
+        FILE_PATH = file_path
     return ThreadingHTTPServer((BRIDGE_HOST, BRIDGE_PORT), _Handler)
 
 

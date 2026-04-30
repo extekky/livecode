@@ -9,6 +9,7 @@ from typing import Optional, Set
 from websockets.asyncio.server import ServerConnection, serve
 
 from server.config import HOST, WS_PORT
+from server import file_store
 
 
 class SyncServer:
@@ -22,12 +23,10 @@ class SyncServer:
     # ── File I/O ────────────────────────────────────────────────────────────
 
     def _load_initial_content(self) -> str:
-        if self.file_path.exists():
-            return self.file_path.read_text(encoding="utf-8")
-        return ""
+        return file_store.read_text(self.file_path)
 
     def _write_file(self, content: str) -> None:
-        self.file_path.write_text(content, encoding="utf-8")
+        file_store.write_text(self.file_path, content)
 
     # ── Messaging helpers ───────────────────────────────────────────────────
 
