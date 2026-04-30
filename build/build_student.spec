@@ -1,14 +1,14 @@
 from pathlib import Path
 
 
-ROOT = Path.cwd()
+ROOT = Path(SPECPATH).resolve().parent
 
 datas = []
 hiddenimports = []
 
 
 a = Analysis(
-    ["start_student.py"],
+    [str(ROOT / "start_student.py")],
     pathex=[str(ROOT)],
     binaries=[],
     datas=datas,

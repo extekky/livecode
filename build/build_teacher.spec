@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-ROOT = Path.cwd()
+ROOT = Path(SPECPATH).resolve().parent
 FRONTEND_DIST_DIR = ROOT / "frontend" / "dist"
 
 if not FRONTEND_DIST_DIR.exists():
@@ -15,7 +15,7 @@ hiddenimports = [
 
 
 a = Analysis(
-    ["start_teacher.py"],
+    [str(ROOT / "start_teacher.py")],
     pathex=[str(ROOT)],
     binaries=[],
     datas=datas,
