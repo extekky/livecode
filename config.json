@@ -1,0 +1,9 @@
+{
+  "max_lines": 150,
+  "http_port": 8000,
+  "ws_port": 5678,
+  "bridge_port": 8765,
+  "debounce_ms": 75,
+  "autosave_ms": 10000,
+  "shared_file": "liveshare.py"
+}
