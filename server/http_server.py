@@ -8,7 +8,15 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import BaseServer
 from typing import Optional
 
-from server.config import HOST, HTTP_PORT, WS_PORT
+from server.config import (
+    AUTOSAVE_MS,
+    BRIDGE_PORT,
+    DEBOUNCE_MS,
+    HOST,
+    HTTP_PORT,
+    MAX_LINES,
+    WS_PORT,
+)
 
 FRONTEND_DIST = pathlib.Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -34,6 +42,10 @@ class _Handler(SimpleHTTPRequestHandler):
                     "localUrl": self.local_url,
                     "httpPort": HTTP_PORT,
                     "wsPort": WS_PORT,
+                    "bridgePort": BRIDGE_PORT,
+                    "maxLines": MAX_LINES,
+                    "debounceMs": DEBOUNCE_MS,
+                    "autosaveMs": AUTOSAVE_MS,
                 }
             ).encode("utf-8")
             self.send_response(HTTPStatus.OK)

@@ -5,7 +5,10 @@ export type SessionPayload = {
   localUrl?: string;
   httpPort?: number;
   wsPort?: number;
+  bridgePort?: number;
   maxLines?: number;
+  debounceMs?: number;
+  autosaveMs?: number;
 };
 
 export type SyncMessage =

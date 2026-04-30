@@ -319,6 +319,19 @@ h1 {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+.external-notice {
+  max-width: 280px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--warn) 38%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--warn);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }

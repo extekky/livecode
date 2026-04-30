@@ -14,9 +14,10 @@ import {
 import Editor from "./components/Editor";
 import type { ConnectionState, SessionPayload, SyncMessage } from "./types";
 
-const BRIDGE_URL = "http://127.0.0.1:8765";
-const DEBOUNCE_MS = 75;
-const AUTOSAVE_MS = 10_000;
+const DEFAULT_BRIDGE_PORT = 8765;
+const DEFAULT_WS_PORT = 5678;
+const DEFAULT_DEBOUNCE_MS = 75;
+const DEFAULT_AUTOSAVE_MS = 10_000;
 const TYPING_TIMEOUT_MS = 2_000;
 
 function countLines(s: string) {
@@ -47,6 +48,10 @@ export default function App() {
   const [bridgeStatus, setBridgeStatus] = useState<ConnectionState>("offline");
   const [saveState, setSaveState] = useState("Waiting for connection");
   const [shareUrl, setShareUrl] = useState(window.location.origin);
+  const [bridgeUrl, setBridgeUrl] = useState(`http://127.0.0.1:${DEFAULT_BRIDGE_PORT}`);
+  const [wsPort, setWsPort] = useState(DEFAULT_WS_PORT);
+  const [debounceMs, setDebounceMs] = useState(DEFAULT_DEBOUNCE_MS);
+  const [autosaveMs, setAutosaveMs] = useState(DEFAULT_AUTOSAVE_MS);
   const [copyLinkLabel, setCopyLinkLabel] = useState("Copy Link");
   const [copyCodeLabel, setCopyCodeLabel] = useState("Copy Code");
   const [lineCount, setLineCount] = useState(1);
@@ -54,6 +59,7 @@ export default function App() {
   const [maxLines, setMaxLines] = useState(150);
   const [participants, setParticipants] = useState(0);
   const [typingName, setTypingName] = useState<string | null>(null);
+  const [externalNotice, setExternalNotice] = useState<string | null>(null);
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved) return saved === "dark";
@@ -65,6 +71,7 @@ export default function App() {
   const debounceRef = useRef<number | null>(null);
   const autosaveRef = useRef<number | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const externalNoticeRef = useRef<number | null>(null);
   const contentRef = useRef("");
   const lastSyncedRef = useRef("");
 
@@ -82,7 +89,7 @@ export default function App() {
 
   const saveToBridge = useCallback(async (text: string) => {
     try {
-      const r = await fetch(`${BRIDGE_URL}/file`, {
+      const r = await fetch(`${bridgeUrl}/file`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: text }),
@@ -94,11 +101,11 @@ export default function App() {
       setBridgeStatus("offline");
       setBridgeOffline();
     }
-  }, [setBridgeOffline, setSaved]);
+  }, [bridgeUrl, setBridgeOffline, setSaved]);
 
   const loadFromBridge = useCallback(async () => {
     try {
-      const r = await fetch(`${BRIDGE_URL}/file`);
+      const r = await fetch(`${bridgeUrl}/file`);
       if (!r.ok) throw new Error();
       const data = (await r.json()) as { content?: string };
       if (typeof data.content === "string" && !lastSyncedRef.current) {
@@ -112,7 +119,7 @@ export default function App() {
       setBridgeStatus("offline");
       setBridgeOffline();
     }
-  }, [setBridgeOffline]);
+  }, [bridgeUrl, setBridgeOffline]);
 
   // ── WebSocket ────────────────────────────────────────────────────────────
 
@@ -136,8 +143,8 @@ export default function App() {
 
   const scheduleDebounce = useCallback((text: string) => {
     if (debounceRef.current !== null) clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => pushContent(text), DEBOUNCE_MS);
-  }, [pushContent]);
+    debounceRef.current = window.setTimeout(() => pushContent(text), debounceMs);
+  }, [debounceMs, pushContent]);
 
   const handleChange = useCallback((text: string) => {
     contentRef.current = text;
@@ -154,9 +161,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let closedByEffect = false;
+
     const connect = () => {
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
-      const ws = new WebSocket(`${proto}//${location.hostname}:5678`);
+      const ws = new WebSocket(`${proto}//${location.hostname}:${wsPort}`);
       socketRef.current = ws;
 
       ws.addEventListener("open", () => {
@@ -165,6 +174,7 @@ export default function App() {
       });
 
       ws.addEventListener("close", () => {
+        if (closedByEffect) return;
         setWsStatus("offline");
         setSaveState("Reconnecting in 1 s…");
         reconnectRef.current = window.setTimeout(connect, 1000);
@@ -174,12 +184,22 @@ export default function App() {
         const msg = JSON.parse(ev.data) as SyncMessage;
 
         if (msg.type === "sync") {
+          const changedExternally = msg.content !== contentRef.current;
+          const overwritesLocalDraft = contentRef.current !== lastSyncedRef.current;
+          const hadKnownContent = Boolean(contentRef.current || lastSyncedRef.current);
           contentRef.current = msg.content;
           setContent(msg.content);
           setLineCount(countLines(msg.content));
           lastSyncedRef.current = msg.content;
           setParticipants(msg.participants);
           setSaveState("Remote update applied");
+          if (changedExternally && hadKnownContent) {
+            setExternalNotice(
+              overwritesLocalDraft
+                ? "External update overwrote local changes"
+                : "Content updated externally"
+            );
+          }
           void saveToBridge(msg.content);
         } else if (msg.type === "participants") {
           setParticipants(msg.count);
@@ -196,11 +216,12 @@ export default function App() {
 
     connect();
     return () => {
+      closedByEffect = true;
       if (reconnectRef.current !== null) clearTimeout(reconnectRef.current);
       if (debounceRef.current !== null) clearTimeout(debounceRef.current);
       socketRef.current?.close();
     };
-  }, [saveToBridge]);
+  }, [saveToBridge, wsPort]);
 
   // ── Boot ─────────────────────────────────────────────────────────────────
 
@@ -212,36 +233,55 @@ export default function App() {
         const data = (await r.json()) as SessionPayload;
         if (data.shareUrl) setShareUrl(data.shareUrl);
         if (data.maxLines) setMaxLines(data.maxLines);
+        if (data.wsPort) setWsPort(data.wsPort);
+        if (data.bridgePort) setBridgeUrl(`http://127.0.0.1:${data.bridgePort}`);
+        if (data.debounceMs) setDebounceMs(data.debounceMs);
+        if (data.autosaveMs) setAutosaveMs(data.autosaveMs);
       } catch {
         setShareUrl(location.origin);
       }
     };
     void boot();
+  }, []);
+
+  useEffect(() => {
     void loadFromBridge();
   }, [loadFromBridge]);
 
   useEffect(() => {
     autosaveRef.current = window.setInterval(() => {
       void saveToBridge(contentRef.current);
-    }, AUTOSAVE_MS);
+    }, autosaveMs);
     return () => {
       if (autosaveRef.current !== null) clearInterval(autosaveRef.current);
     };
-  }, [saveToBridge]);
+  }, [autosaveMs, saveToBridge]);
+
+  useEffect(() => {
+    if (!externalNotice) return;
+    if (externalNoticeRef.current !== null) clearTimeout(externalNoticeRef.current);
+    externalNoticeRef.current = window.setTimeout(() => {
+      setExternalNotice(null);
+      externalNoticeRef.current = null;
+    }, 3500);
+    return () => {
+      if (externalNoticeRef.current !== null) clearTimeout(externalNoticeRef.current);
+    };
+  }, [externalNotice]);
 
   useEffect(() => {
     const onUnload = () => {
       if (contentRef.current === lastSyncedRef.current) return;
-      navigator.sendBeacon?.(
-        `${BRIDGE_URL}/file`,
-        new Blob([JSON.stringify({ content: contentRef.current })], {
-          type: "application/json",
-        })
-      );
+      void fetch(`${bridgeUrl}/file`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: contentRef.current }),
+        keepalive: true,
+      });
     };
     window.addEventListener("beforeunload", onUnload);
     return () => window.removeEventListener("beforeunload", onUnload);
-  }, []);
+  }, [bridgeUrl]);
 
   // ── Copy helpers ─────────────────────────────────────────────────────────
 
@@ -333,6 +373,9 @@ export default function App() {
           <div className="meta-right">
             {typingName && (
               <span className="typing-indicator">{typingName} is typing…</span>
+            )}
+            {externalNotice && (
+              <span className="external-notice">{externalNotice}</span>
             )}
             <span className="participants" title="Participants">
               <Users size={14} />

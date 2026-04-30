@@ -238,9 +238,6 @@ class _Handler(BaseHTTPRequestHandler):
     def do_PUT(self) -> None:
         self._write_route()
 
-    def do_POST(self) -> None:
-        self._write_route()
-
     def _write_route(self) -> None:
         if self.path != "/file":
             self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
